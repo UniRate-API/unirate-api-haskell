@@ -1,8 +1,13 @@
 name: Release to Hackage
 
-# Publishes the package (and its Haddock docs) to Hackage when a vX.Y.Z tag is
-# pushed. Requires the HACKAGE_TOKEN repository secret (a Hackage API token
-# from the account's "Account management" page). CI runs in GitHub's sandbox.
+# Publishes the package to Hackage when a vX.Y.Z tag is pushed. Requires the
+# HACKAGE_TOKEN repository secret (a Hackage API token from the account's
+# "Manage auth tokens" page). CI runs in GitHub's sandbox.
+#
+# NOTE: the Hackage account must be a member of the "Package uploaders" group
+# before the first upload will succeed (a brand-new account returns 403 "No
+# access for this resource"). Uploads use the X-ApiKey header directly (Hackage
+# rejects `cabal upload --token` with 401 "Bad auth token").
 
 on:
   push:
@@ -35,7 +40,17 @@ jobs:
       - name: Publish package to Hackage
         env:
           HACKAGE_TOKEN: ${{ secrets.HACKAGE_TOKEN }}
-        run: cabal upload --publish --token="$HACKAGE_TOKEN" dist-newstyle/sdist/*.tar.gz
+        run: |
+          set -euo pipefail
+          TARBALL=$(ls dist-newstyle/sdist/*.tar.gz)
+          echo "Publishing $TARBALL"
+          code=$(curl -sS -o /tmp/hackage-resp.txt -w '%{http_code}' -X POST \
+            -H "Authorization: X-ApiKey ${HACKAGE_TOKEN}" \
+            -F "package=@${TARBALL}" \
+            https://hackage.haskell.org/packages/)
+          echo "Hackage HTTP $code"
+          sed -e 's/<[^>]*>//g' /tmp/hackage-resp.txt | grep -vE '^\s*$' | head -20 || true
+          test "$code" -ge 200 -a "$code" -lt 300
 
       - name: Publish Haddock docs to Hackage (best-effort)
         continue-on-error: true
@@ -43,5 +58,10 @@ jobs:
           HACKAGE_TOKEN: ${{ secrets.HACKAGE_TOKEN }}
         run: |
           cabal haddock --haddock-for-hackage
-          cabal upload --publish --documentation --token="$HACKAGE_TOKEN" \
-            dist-newstyle/*-docs.tar.gz
+          DOCS=$(ls dist-newstyle/*-docs.tar.gz)
+          curl -sS -X PUT \
+            -H "Authorization: X-ApiKey ${HACKAGE_TOKEN}" \
+            -H "Content-Type: application/x-tar" \
+            -H "Content-Encoding: gzip" \
+            --data-binary "@${DOCS}" \
+            "https://hackage.haskell.org/package/unirate-api-0.1.0.0/docs"
