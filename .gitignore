@@ -1,0 +1,7 @@
+dist-newstyle/
+dist/
+*.hi
+*.o
+cabal.project.local
+cabal.project.freeze
+.ghc.environment.*

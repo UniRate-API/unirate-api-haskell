@@ -1,0 +1,79 @@
+cabal-version:      2.4
+name:               unirate-api
+version:            0.1.0.0
+synopsis:           Official Haskell client for the UniRate currency exchange rate API.
+description:
+  A small, dependency-light Haskell client for the
+  <https://unirateapi.com UniRate API> — free currency exchange rates,
+  historical data, and VAT rates. Covers current rates, conversion, the
+  supported-currency list, historical rates and time series, and VAT rates,
+  with an injectable HTTP transport so code can be tested without the network.
+homepage:           https://unirateapi.com
+bug-reports:        https://github.com/UniRate-API/unirate-api-haskell/issues
+license:            MIT
+license-file:       LICENSE
+author:             Unirate Team
+maintainer:         admin@unirateapi.com
+copyright:          2026 Unirate Team
+category:           Web, Finance
+build-type:         Simple
+extra-doc-files:    README.md
+                    CHANGELOG.md
+tested-with:        GHC ==9.6.6 || ==9.8.2
+
+source-repository head
+  type:     git
+  location: https://github.com/UniRate-API/unirate-api-haskell.git
+
+common warnings
+  ghc-options: -Wall
+
+library
+  import:           warnings
+  hs-source-dirs:   src
+  exposed-modules:  UniRate
+                    UniRate.Client
+                    UniRate.Errors
+                    UniRate.Transport
+                    UniRate.Types
+  build-depends:    base             >=4.14   && <5
+                  , text             >=1.2    && <3
+                  , bytestring       >=0.10   && <0.13
+                  , containers       >=0.6    && <0.8
+                  , aeson            >=2.0    && <2.3
+                  , http-client      >=0.7    && <0.8
+                  , http-client-tls  >=0.3    && <0.4
+                  , http-types       >=0.12   && <0.13
+  default-language: Haskell2010
+
+test-suite unirate-test
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  main-is:          MockSpec.hs
+  hs-source-dirs:   test
+  build-depends:    base
+                  , bytestring
+                  , containers
+                  , text
+                  , unirate-api
+  default-language: Haskell2010
+
+test-suite unirate-live
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  main-is:          LiveSpec.hs
+  hs-source-dirs:   live
+  build-depends:    base
+                  , containers
+                  , text
+                  , unirate-api
+  default-language: Haskell2010
+
+executable unirate-example
+  import:           warnings
+  main-is:          Example.hs
+  hs-source-dirs:   examples
+  build-depends:    base
+                  , text
+                  , unirate-api
+  default-language: Haskell2010

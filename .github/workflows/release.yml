@@ -1,0 +1,43 @@
+name: Release to Hackage
+
+# Publishes the package (and its Haddock docs) to Hackage when a vX.Y.Z tag is
+# pushed. Requires the HACKAGE_TOKEN repository secret (a Hackage API token
+# from the account's "Account management" page). CI runs in GitHub's sandbox.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up GHC
+        uses: haskell-actions/setup@0f8e8c99d88aeb3fbfd523f1ef2c6f762d10d64d # v2.12.1
+        with:
+          ghc-version: '9.6.6'
+          cabal-version: '3.10'
+
+      - name: Build and test
+        run: |
+          cabal build all
+          cabal test unirate-test --test-show-details=direct
+
+      - name: Build source + docs tarballs
+        run: |
+          cabal sdist
+          cabal haddock --haddock-for-hackage --enable-doc
+
+      - name: Upload package to Hackage
+        env:
+          HACKAGE_TOKEN: ${{ secrets.HACKAGE_TOKEN }}
+        run: |
+          cabal upload --publish --token="$HACKAGE_TOKEN" dist-newstyle/sdist/*.tar.gz
+          cabal upload --publish --documentation --token="$HACKAGE_TOKEN" \
+            dist-newstyle/*-docs.tar.gz
