@@ -29,15 +29,19 @@ jobs:
           cabal build all
           cabal test unirate-test --test-show-details=direct
 
-      - name: Build source + docs tarballs
-        run: |
-          cabal sdist
-          cabal haddock --haddock-for-hackage --enable-doc
+      - name: Build source tarball
+        run: cabal sdist
 
-      - name: Upload package to Hackage
+      - name: Publish package to Hackage
+        env:
+          HACKAGE_TOKEN: ${{ secrets.HACKAGE_TOKEN }}
+        run: cabal upload --publish --token="$HACKAGE_TOKEN" dist-newstyle/sdist/*.tar.gz
+
+      - name: Publish Haddock docs to Hackage (best-effort)
+        continue-on-error: true
         env:
           HACKAGE_TOKEN: ${{ secrets.HACKAGE_TOKEN }}
         run: |
-          cabal upload --publish --token="$HACKAGE_TOKEN" dist-newstyle/sdist/*.tar.gz
+          cabal haddock --haddock-for-hackage
           cabal upload --publish --documentation --token="$HACKAGE_TOKEN" \
             dist-newstyle/*-docs.tar.gz
